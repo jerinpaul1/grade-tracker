@@ -1,23 +1,20 @@
 const { createClient } = require('@supabase/supabase-js');
 
+const supabase = createClient(
+  'https://tgnhbmqgdupnzkbofotf.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
+);
+
 exports.handler = async function (event) {
-  const supabase = createClient(process.env.gnhbmqgdupnzkbofotf.supabase.co, process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o);
+  const body = JSON.parse(event.body);
 
-  const gradesData = JSON.parse(event.body);
-
-  const { error } = await supabase
-    .from('grades')
-    .insert([{ data: gradesData }]);
-
-  if (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
+  await supabase.from('grades').upsert({
+    id: 1,
+    data: body
+  });
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: 'Grades saved successfully.' }),
+    body: JSON.stringify({ message: 'Saved' })
   };
 };
