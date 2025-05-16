@@ -1,191 +1,196 @@
-/* ─── Global & Theme ─────────────────────────────────────────────────────── */
-:root {
-  --bg: #f5f7fa;
-  --card-bg: #ffffff;
-  --primary: #2a9d8f;
-  --primary-hover: #23867a;
-  --secondary: #264653;
-  --text: #333333;
-  --muted: #777777;
-  --radius: 8px;
-  --transition: 0.3s ease;
-  --header-height: 60px;
-}
-
+/* Reset and base styles */
 * {
   box-sizing: border-box;
-  transition: all var(--transition);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-body {
+body, html {
+  height: 100%;
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-  background-color: var(--bg);
-  color: var(--text);
-  line-height: 1.5;
+  padding: 0;
+  background-color: #f4f7fa;
+  color: #333;
 }
 
-/* ─── App Container ───────────────────────────────────────────────────────── */
+/* Auth (Login/Signup) Container */
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+.auth-container h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-container input {
+  padding: 12px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  width: 250px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.error-msg {
+  color: red;
+  margin-top: 10px;
+}
+
+/* Main App Layout */
 .app-container {
+  padding: 20px;
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
 }
 
-/* ─── Header ───────────────────────────────────────────────────────────────── */
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  height: var(--header-height);
-  border-bottom: 1px solid #ddd;
-  margin-bottom: 1rem;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .header h1 {
-  font-size: 1.5rem;
   margin: 0;
 }
 
-/* ─── Controls Row ────────────────────────────────────────────────────────── */
+.footer {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
+/* Buttons */
 .btn {
+  padding: 10px 16px;
+  font-size: 0.95rem;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .btn.primary {
-  background-color: var(--primary);
-  color: #fff;
-}
-.btn.primary:hover {
-  background-color: var(--primary-hover);
+  background-color: #4caf50;
+  color: white;
 }
 
 .btn.secondary {
-  background-color: var(--secondary);
-  color: #fff;
-}
-.btn.secondary:hover {
-  background-color: #1f3543;
+  background-color: #2196f3;
+  color: white;
 }
 
+.btn:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
+}
+
+/* Save message */
 .save-msg {
-  color: var(--primary);
-  font-weight: bold;
   display: none;
-  margin-left: 0.5rem;
+  align-self: center;
+  color: green;
+  font-weight: bold;
 }
 
-/* ─── Years & Modules Layout ───────────────────────────────────────────────── */
-.years-container {
+/* Collapsible Sections */
+.year-container,
+.module-container {
+  background-color: white;
+  padding: 16px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.year-header,
+.module-header {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.year, .module {
-  background-color: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  padding: 0.75rem 1rem;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Collapse/expand transition */
-.year, .module {
-  transition: max-height var(--transition), opacity var(--transition);
-}
-
-/* ─── Year Collapsed View ─────────────────────────────────────────────────── */
-.year > button[aria-label*="Expand"] {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  font-size: 1.25rem;
-  color: var(--muted);
-}
-.year > button[aria-label*="Collapse"] {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
-  font-size: 1.25rem;
-  color: var(--muted);
-}
-
-.year.collapsed {
-  cursor: pointer;
-}
-
-/* ─── Module Collapsed View ───────────────────────────────────────────────── */
-.module-collapsed {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-}
-
-.module-collapsed button {
-  background: none;
-  font-size: 1rem;
-  color: var(--muted);
-  border: none;
+  align-items: center;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 1.1rem;
 }
 
-/* ─── Module & Year Expanded View ─────────────────────────────────────────── */
-.module input, .module button {
-  margin: 0.25rem 0;
-  width: 100%;
+.module-body,
+.year-body {
+  margin-top: 12px;
+  display: none;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-.module input[type="text"], .module input[type="number"] {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: var(--radius);
+.module-body.open,
+.year-body.open {
+  display: block;
 }
 
-.module button {
-  width: auto;
+.toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #555;
 }
 
-/* Smooth toggling */
-.hidden {
-  max-height: 0;
-  opacity: 0;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.visible {
-  max-height: 1000px;
-  opacity: 1;
+.input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-/* ─── Footer ───────────────────────────────────────────────────────────────── */
-.footer {
-  text-align: center;
-  margin-top: 2rem;
-  color: var(--secondary);
+.input-row input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 100px;
+  flex: 1;
 }
 
-/* ─── Responsive ───────────────────────────────────────────────────────────── */
+.module-grade,
+.year-average {
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
 @media (max-width: 600px) {
   .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-row {
     flex-direction: column;
   }
 }
