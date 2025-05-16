@@ -1,20 +1,18 @@
 body {
   font-family: sans-serif;
   padding: 20px;
-  background: #f9f9f9;
 }
-h1 {
-  text-align: center;
-}
-#app > div {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 15px;
-  background: #fff;
-}
+
 input {
-  margin: 5px;
+  margin: 2px;
 }
+
 button {
-  margin-top: 5px;
+  margin: 5px 0;
+}
+
+.year, .module, .assessment {
+  border: 1px solid #ccc;
+  margin: 10px;
+  padding: 10px;
 }
