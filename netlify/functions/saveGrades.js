@@ -1,52 +1,42 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  'https://tgnhbmqgdupnzkbofotf.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SECRET
 );
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
+exports.handler = async (event, context) => {
+  const { user } = context.clientContext;
+  if (!user) {
+    return { statusCode: 401, body: 'Not authenticated' };
   }
 
-  const token = event.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ error: 'Missing auth token' })
-    };
-  }
+  const { data: newGrades } = JSON.parse(event.body);
 
-  const { data: user, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !user) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ error: 'Invalid token' })
-    };
-  }
+  const userId = user.sub;
 
-  const body = JSON.parse(event.body);
-
-  const { data: existing } = await supabase
+  // Try to update
+  const { error: updateError } = await supabase
     .from('grades')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
+    .update({ data: newGrades })
+    .eq('user_id', userId);
 
-  const result = existing
-    ? await supabase.from('grades').update({ data: body }).eq('user_id', user.id)
-    : await supabase.from('grades').insert({ user_id: user.id, data: body });
+  // If update failed (maybe row doesn't exist), try insert
+  if (updateError) {
+    const { error: insertError } = await supabase
+      .from('grades')
+      .insert([{ user_id: userId, data: newGrades }]);
 
-  if (result.error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: result.error.message })
-    };
+    if (insertError) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: insertError.message }),
+      };
+    }
   }
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ success: true })
+    body: JSON.stringify({ success: true }),
   };
 };
