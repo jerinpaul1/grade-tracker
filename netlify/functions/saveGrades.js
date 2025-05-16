@@ -7,21 +7,44 @@ const supabase = createClient(
 
 exports.handler = async (event, context) => {
   const auth = context.clientContext?.user;
-  if (!auth) return { statusCode: 401, body: "Not authenticated" };
+  if (!auth) {
+    return { statusCode: 401, body: "Not authenticated" };
+  }
 
-  if (event.httpMethod !== 'POST')
+  if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
   const gradesData = JSON.parse(event.body);
 
-  // Upsert on conflict user_id
-  const { error } = await supabase
+  // 1) See if a row exists for this user
+  const { data: existing, error: selectError } = await supabase
     .from('grades')
-    .upsert(
-      { user_id: auth.sub, data: gradesData },
-      { onConflict: 'user_id' }
-    );
+    .select('id')
+    .eq('user_id', auth.sub)
+    .single();
 
-  if (error) return { statusCode: 500, body: error.message };
+  if (selectError && selectError.code !== 'PGRST116') {
+    // some real error
+    return { statusCode: 500, body: selectError.message };
+  }
+
+  // 2) If exists, update. If not, insert.
+  let result;
+  if (existing && existing.id) {
+    result = await supabase
+      .from('grades')
+      .update({ data: gradesData })
+      .eq('user_id', auth.sub);
+  } else {
+    result = await supabase
+      .from('grades')
+      .insert([{ user_id: auth.sub, data: gradesData }]);
+  }
+
+  if (result.error) {
+    return { statusCode: 500, body: result.error.message };
+  }
+
   return { statusCode: 200, body: JSON.stringify({ success: true }) };
 };
