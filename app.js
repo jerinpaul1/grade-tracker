@@ -112,7 +112,24 @@ async function loadGrades() {
     return;
   }
 
-  if (data?.data?.years) renderGrades(data.data.years);
+  if (data?.data?.years) {
+    const normalized = data.data.years.map((year) => ({
+      yearName: year.name, // rename 'name' to 'yearName'
+      modules: year.modules.map((mod) => {
+        // Optional: compute grade if assessments exist
+        if (mod.assessments?.length) {
+          const totalWeight = mod.assessments.reduce((acc, a) => acc + a.weight, 0);
+          const weightedSum = mod.assessments.reduce((acc, a) => acc + (a.mark * a.weight), 0);
+          const grade = totalWeight ? weightedSum / totalWeight : 0;
+          return { name: mod.name, credits: mod.credits, grade };
+        } else {
+          return { name: mod.name, credits: mod.credits, grade: 0 };
+        }
+      }),
+    }));
+
+    renderGrades(normalized);
+  }
 }
 
 async function saveGrades() {
