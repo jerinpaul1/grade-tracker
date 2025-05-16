@@ -156,42 +156,49 @@ function render() {
     const yDiv = document.createElement("div");
     yDiv.className = "year";
 
+    // Calculate this year's average
+    const yearAvg = calculateYearAvg(yr);
+
     if (yr.collapsed) {
-      // Year collapsed: show name, average, and Edit button
-      const ya = calculateYearAvg(yr);
+      // Collapsed Year: show name + avg + expand arrow
       yDiv.innerHTML = `
-        <strong>${yr.name}</strong> — <em>Avg: ${ya}</em>
-        <button onclick="toggleYear(${yi})">✏️ Edit</button>
+        <strong>${yr.name}</strong> — ${yearAvg}
+        <button onclick="toggleYear(${yi})" aria-label="Expand Year">▶</button>
       `;
     } else {
-      // Year expanded: show full UI + Collapse button
-      let html = `<button onclick="toggleYear(${yi})">⬆️ Collapse Year</button><br/>
-        <h2>${yr.name}</h2>
-        <button onclick="addModule(${yi})">+ Add Module</button><br/>`;
+      // Expanded Year: collapse arrow + name + avg + modules
+      let html = `
+        <button onclick="toggleYear(${yi})" aria-label="Collapse Year">▼</button>
+        <strong>${yr.name}</strong> — ${yearAvg}
+        <button onclick="addModule(${yi})">+ Add Module</button>
+      `;
 
+      // Render its modules
       yr.modules.forEach((m, mi) => {
+        const modGrade = calculateModuleGrade(m.assessments);
         if (m.collapsed) {
-          // Module collapsed inside expanded year
-          const grade = calculateModuleGrade(m.assessments);
+          // Collapsed Module
           html += `
             <div class="module-collapsed">
-              <strong>${m.name}</strong> — <em>${grade}</em>
-              <button onclick="toggleModule(${yi},${mi})">✏️ Edit</button>
-            </div>`;
+              <em>${m.name}</em> — ${modGrade}
+              <button onclick="toggleModule(${yi},${mi})" aria-label="Expand Module">▶</button>
+            </div>
+          `;
         } else {
-          // Module expanded inside expanded year
+          // Expanded Module
           html += `<div class="module">
-            <button onclick="toggleModule(${yi},${mi})">⬆️ Collapse Module</button><br/>
+            <button onclick="toggleModule(${yi},${mi})" aria-label="Collapse Module">▼</button><br/>
             <input value="${m.name}" onchange="updateField(event,${yi},${mi},null,'name')" />
             <input type="number" value="${m.credits}" onchange="updateField(event,${yi},${mi},null,'credits')" /> credits
-            <button onclick="addAssessment(${yi},${mi})">+ Add Assessment</button><br/>`;
+            <button onclick="addAssessment(${yi},${mi})">+ Add Assessment</button><br/>
+          `;
           m.assessments.forEach((a, ai) => {
             html += `
               Mark:<input type="number" value="${a.mark}" onchange="updateField(event,${yi},${mi},${ai},'mark')" />
-              Wt:<input type="number" value="${a.weight}" onchange="updateField(event,${yi},${mi},${ai},'weight')" /><br/>`;
+              Wt:<input type="number" value="${a.weight}" onchange="updateField(event,${yi},${mi},${ai},'weight')" /><br/>
+            `;
           });
-          const grade = calculateModuleGrade(m.assessments);
-          html += `<div><strong>Grade:</strong> ${grade}</div></div>`;
+          html += `<div><strong>Grade:</strong> ${modGrade}</div></div>`;
         }
       });
 
@@ -201,7 +208,20 @@ function render() {
     yearsEl.appendChild(yDiv);
   });
 
-  document.getElementById("classification").innerText = calculateOverall();
+  // Update overall classification with percentage
+  const overallAvg = (() => {
+    // reuse calculation logic
+    let sum = 0, cred = 0;
+    data.years.forEach(y => y.modules.forEach(m => {
+      const g = parseFloat(calculateModuleGrade(m.assessments));
+      if (!isNaN(g)) { sum += g * m.credits; cred += m.credits; }
+    }));
+    return cred ? (sum/cred).toFixed(1) + "%" : "-";
+  })();
+
+  const overallClass = calculateOverall();
+  document.getElementById("classification").innerText =
+    `${overallAvg} – ${overallClass}`;
 }
 
 // ─── SAVE MSG / RESET / EXPORT / IMPORT ──────────────────────────────────────
