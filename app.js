@@ -49,10 +49,10 @@ async function loadGrades() {
   const json = await res.json();
   data = json || { years: [] };
 
-  // ensure collapsed property exists
+  // default any module to collapsed = true
   data.years.forEach(y => {
     y.modules.forEach(m => {
-      if (m.collapsed === undefined) m.collapsed = false;
+      if (m.collapsed === undefined) m.collapsed = true;
     });
   });
 
@@ -119,7 +119,7 @@ function addModule(y) {
     name: "Module",
     credits: 20,
     assessments: [],
-    collapsed: false
+    collapsed: true    // default collapsed
   });
   render();
 }
@@ -152,14 +152,14 @@ function render() {
       modDiv.className = "module";
 
       if (m.collapsed) {
-        // Collapsed view: name + grade + Edit button
+        // Collapsed view
         const grade = calculateModuleGrade(m.assessments);
         modDiv.innerHTML = `
           <strong>${m.name}</strong> — <em>${grade}</em>
           <button onclick="toggleModule(${yi},${mi})">✏️ Edit</button>
         `;
       } else {
-        // Expanded view: full inputs + Collapse button
+        // Expanded view
         let html = `
           <button onclick="toggleModule(${yi},${mi})">⬆️ Collapse</button><br/>
           <input value="${m.name}" onchange="updateField(event,${yi},${mi},null,'name')" />
@@ -180,7 +180,6 @@ function render() {
       yDiv.appendChild(modDiv);
     });
 
-    // Year average
     const ya = calculateYearAvg(yr);
     const avgDiv = document.createElement("div");
     avgDiv.innerHTML = `<strong>Year Average:</strong> ${ya}`;
