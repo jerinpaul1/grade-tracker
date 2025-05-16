@@ -3,22 +3,18 @@ body {
   padding: 20px;
   background: #f9f9f9;
 }
-
 h1 {
   text-align: center;
 }
-
 #app > div {
   border: 1px solid #ccc;
   padding: 10px;
   margin-bottom: 15px;
   background: #fff;
 }
-
 input {
   margin: 5px;
 }
-
 button {
   margin-top: 5px;
 }
