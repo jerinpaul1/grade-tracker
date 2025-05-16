@@ -20,16 +20,14 @@
     <h1>Grade Tracker</h1>
     <button onclick="addYear()">➕ Add Year</button>
 
-    <!-- New buttons for save/reset/export/import -->
+    <!-- Save/Reset/Export/Import buttons -->
     <div style="margin-top: 1em;">
       <button onclick="saveGrades()">💾 Save</button>
       <span id="save-msg" style="color: green; display: none;">✅ Saved!</span>
       <button onclick="resetData()">🧹 Reset</button>
       <button onclick="exportData()">📤 Export</button>
-      <button <label style="cursor:pointer;">
-        📥 Import
-        <input type="file" accept=".json" onchange="importData(event)" style="display: none;" />
-      </label> </button>
+      <button onclick="document.getElementById('import-input').click()">📥 Import</button>
+      <input id="import-input" type="file" accept=".json" onchange="importData(event)" style="display: none;" />
     </div>
 
     <div id="years"></div>
