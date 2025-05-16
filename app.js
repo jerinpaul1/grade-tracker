@@ -1,8 +1,8 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// ─── Supabase Client ────────────────────────────────────────────────────────
+// ─── Supabase Client ─────────────────────────────────────────────────────────
 const supabaseUrl = "https://tgnhbmqgdupnzkbofotf.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoeqSVjVWsnasiXRmd1o";
 const supabase    = createClient(supabaseUrl, supabaseKey);
 
 // ─── DOM ELEMENTS ────────────────────────────────────────────────────────────
@@ -76,24 +76,23 @@ async function loadGrades() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
-  const token = session.access_token;
   const res = await fetch("/.netlify/functions/getGrades", {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${session.access_token}` }
   });
   const payload = await res.json();       // { years: [...] }
 
-  renderGrades(payload.years || []);
+  // payload.years is exactly your Supabase JSON structure
+  renderGrades(payload.years);
 }
 
 async function saveGrades() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
-  const token = session.access_token;
   await fetch("/.netlify/functions/saveGrades", {
     method:  "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${session.access_token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ years: getCurrentGrades() })
@@ -127,7 +126,7 @@ function calculateClassification(years) {
     yr.modules.forEach((mod) => {
       const wsum = mod.assessments.reduce((s,a) => s + a.weight, 0) || 1;
       const avg  = mod.assessments.reduce((s,a) => s + a.mark * a.weight, 0) / wsum;
-      totalCred  += mod.credits;
+      totalCred   += mod.credits;
       sumWeighted += avg * mod.credits;
     })
   );
@@ -189,10 +188,8 @@ function addModuleDiv(yearDiv, data = { name: "", credits: 0, assessments: [] })
   const assessList = document.createElement("div");
   assessList.className = "assessment-list";
 
-  // render existing assessments or one empty row
-  (data.assessments.length ? data.assessments : [{}]).forEach((a) =>
-    addAssessmentRow(assessList, a)
-  );
+  (data.assessments.length ? data.assessments : [{}])
+    .forEach((a) => addAssessmentRow(assessList, a));
 
   const addA = document.createElement("button");
   addA.textContent = "+ Add Assessment";
@@ -218,10 +215,11 @@ function addAssessmentRow(container, a = {}) {
   wtIn.placeholder = "Weight";
   wtIn.value = a.weight ?? "";
 
-  // re‑calc on change
-  [markIn, wtIn].forEach((el) => el.addEventListener("input", () =>
-    classification.textContent = calculateClassification(getCurrentGrades())
-  ));
+  [markIn, wtIn].forEach((el) =>
+    el.addEventListener("input", () =>
+      classification.textContent = calculateClassification(getCurrentGrades())
+    )
+  );
 
   row.append(markIn, wtIn);
   container.appendChild(row);
@@ -232,13 +230,17 @@ clearBtn.onclick = () => {
   yearsContainer.innerHTML = "";
   classification.textContent = "N/A";
 };
+
 exportBtn.onclick = () => {
-  const blob = new Blob([JSON.stringify({ years: getCurrentGrades() },null,2)], { type:"application/json" });
+  const blob = new Blob([JSON.stringify({ years: getCurrentGrades() }, null, 2)], {
+    type: "application/json"
+  });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "grades.json";
   a.click();
 };
+
 importBtn.onclick = () => importFile.click();
 importFile.onchange = async (e) => {
   const file = e.target.files[0];
