@@ -31,12 +31,8 @@ loginBtn.addEventListener("click", async () => {
     password: passwordInput.value,
   });
 
-  if (error) {
-    authError.textContent = error.message;
-  } else {
-    authError.textContent = "";
-    await checkSession();
-  }
+  authError.textContent = error ? error.message : "";
+  if (!error) await checkSession();
 });
 
 signupBtn.addEventListener("click", async () => {
@@ -45,11 +41,7 @@ signupBtn.addEventListener("click", async () => {
     password: passwordInput.value,
   });
 
-  if (error) {
-    authError.textContent = error.message;
-  } else {
-    authError.textContent = "Check your email to confirm sign-up.";
-  }
+  authError.textContent = error ? error.message : "Check your email to confirm sign-up.";
 });
 
 logoutBtn.addEventListener("click", async () => {
@@ -63,11 +55,6 @@ async function checkSession() {
     data: { session },
     error,
   } = await supabase.auth.getSession();
-
-  if (error) {
-    console.error("Session check failed:", error.message);
-    return;
-  }
 
   if (session) {
     showApp();
@@ -93,90 +80,62 @@ function showAuth() {
 async function loadGrades() {
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser();
+  if (!user) return;
 
-  if (error || !user) {
-    console.error("Error loading user:", error?.message);
-    return;
-  }
-
-  const { data, error: gradeError } = await supabase
+  const { data, error } = await supabase
     .from("grades")
     .select("data")
     .eq("user_id", user.id)
     .single();
 
-  if (gradeError && gradeError.code !== "PGRST116") {
-    console.error("Error loading grades:", gradeError.message);
+  if (error && error.code !== "PGRST116") {
+    console.error("Error loading grades:", error.message);
     return;
   }
 
-  if (data?.data?.years) {
-    const normalized = data.data.years.map((year) => ({
-      yearName: year.name, // rename 'name' to 'yearName'
-      modules: year.modules.map((mod) => {
-        // Optional: compute grade if assessments exist
-        if (mod.assessments?.length) {
-          const totalWeight = mod.assessments.reduce((acc, a) => acc + a.weight, 0);
-          const weightedSum = mod.assessments.reduce((acc, a) => acc + (a.mark * a.weight), 0);
-          const grade = totalWeight ? weightedSum / totalWeight : 0;
-          return { name: mod.name, credits: mod.credits, grade };
-        } else {
-          return { name: mod.name, credits: mod.credits, grade: 0 };
-        }
-      }),
-    }));
-
-    renderGrades(normalized);
-  }
+  if (data) renderGrades(data.data);
 }
 
 async function saveGrades() {
   const gradeData = getCurrentGrades();
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser();
+  if (!user) return;
 
-  if (error || !user) {
-    console.error("Error saving: user not found.");
-    return;
-  }
-
-  const { error: saveError } = await supabase
+  const { error } = await supabase
     .from("grades")
     .upsert({ user_id: user.id, data: gradeData }, { onConflict: ["user_id"] });
 
-  if (saveError) {
-    console.error("Save failed:", saveError.message);
-  } else {
+  if (!error) {
     saveMsg.style.display = "block";
     setTimeout(() => (saveMsg.style.display = "none"), 2000);
   }
 }
 
 function getCurrentGrades() {
-  const years = [...document.querySelectorAll(".year")].map((year) => {
+  return [...document.querySelectorAll(".year")].map((year) => {
     const yearName = year.querySelector(".year-name").textContent;
     const modules = [...year.querySelectorAll(".module")].map((module) => {
       const name = module.querySelector(".module-name").value;
-      const grade = parseFloat(module.querySelector(".module-grade").value) || 0;
       const credits = parseFloat(module.querySelector(".module-credits").value) || 0;
-      return { name, grade, credits };
+      const assessments = [...module.querySelectorAll(".assessment")].map((a) => ({
+        mark: parseFloat(a.querySelector(".mark").value) || 0,
+        weight: parseFloat(a.querySelector(".weight").value) || 0,
+      }));
+      return { name, credits, assessments };
     });
-    return { yearName, modules };
+    return { name: yearName, modules };
   });
-
-  return years;
 }
 
 function renderGrades(data) {
   yearsContainer.innerHTML = "";
   if (!data) return;
 
-  data.forEach((year, index) => {
-    const yearDiv = createYear(index, year.yearName);
+  data.forEach((year, i) => {
+    const yearDiv = createYear(i, year.name);
     year.modules.forEach((mod) => addModule(yearDiv, mod));
     yearsContainer.appendChild(yearDiv);
   });
@@ -203,14 +162,11 @@ function createYear(index, name = `Year ${index + 1}`) {
   addModuleBtn.classList.add("btn", "secondary");
   addModuleBtn.addEventListener("click", () => addModule(yearDiv));
 
-  yearDiv.appendChild(title);
-  yearDiv.appendChild(moduleList);
-  yearDiv.appendChild(addModuleBtn);
-
+  yearDiv.append(title, moduleList, addModuleBtn);
   return yearDiv;
 }
 
-function addModule(yearDiv, data = { name: "", grade: 0, credits: 0 }) {
+function addModule(yearDiv, data = { name: "", credits: 0, assessments: [] }) {
   const module = document.createElement("div");
   module.classList.add("module");
 
@@ -220,45 +176,68 @@ function addModule(yearDiv, data = { name: "", grade: 0, credits: 0 }) {
   nameInput.value = data.name;
   nameInput.classList.add("module-name");
 
-  const gradeInput = document.createElement("input");
-  gradeInput.type = "number";
-  gradeInput.placeholder = "Grade";
-  gradeInput.value = data.grade;
-  gradeInput.classList.add("module-grade");
-
   const creditsInput = document.createElement("input");
   creditsInput.type = "number";
   creditsInput.placeholder = "Credits";
   creditsInput.value = data.credits;
   creditsInput.classList.add("module-credits");
 
-  module.append(nameInput, gradeInput, creditsInput);
-  yearDiv.querySelector(".module-list").appendChild(module);
+  const assessmentList = document.createElement("div");
+  assessmentList.classList.add("assessment-list");
 
-  gradeInput.addEventListener("input", updateClassification);
-  creditsInput.addEventListener("input", updateClassification);
+  data.assessments.forEach((a) => addAssessment(assessmentList, a));
+  if (data.assessments.length === 0) addAssessment(assessmentList);
+
+  const addAssessmentBtn = document.createElement("button");
+  addAssessmentBtn.textContent = "+ Add Assessment";
+  addAssessmentBtn.classList.add("btn", "tertiary");
+  addAssessmentBtn.addEventListener("click", () => addAssessment(assessmentList));
+
+  module.append(nameInput, creditsInput, assessmentList, addAssessmentBtn);
+  yearDiv.querySelector(".module-list").appendChild(module);
 }
 
-// === DEGREE CLASSIFICATION ===
+function addAssessment(container, data = { mark: 0, weight: 0 }) {
+  const div = document.createElement("div");
+  div.classList.add("assessment");
+
+  const markInput = document.createElement("input");
+  markInput.type = "number";
+  markInput.placeholder = "Mark";
+  markInput.value = data.mark;
+  markInput.classList.add("mark");
+
+  const weightInput = document.createElement("input");
+  weightInput.type = "number";
+  weightInput.placeholder = "Weight";
+  weightInput.value = data.weight;
+  weightInput.classList.add("weight");
+
+  div.append(markInput, weightInput);
+  container.appendChild(div);
+
+  markInput.addEventListener("input", updateClassification);
+  weightInput.addEventListener("input", updateClassification);
+}
+
+// === CLASSIFICATION ===
 
 function updateClassification() {
   const grades = getCurrentGrades();
-  let total = 0,
-    weighted = 0;
+  let total = 0;
+  let weighted = 0;
 
   grades.forEach((year) => {
     year.modules.forEach((mod) => {
-      weighted += mod.grade * mod.credits;
+      const moduleAvg =
+        mod.assessments.reduce((sum, a) => sum + a.mark * a.weight, 0) /
+        (mod.assessments.reduce((sum, a) => sum + a.weight, 0) || 1);
+      weighted += moduleAvg * mod.credits;
       total += mod.credits;
     });
   });
 
-  if (total === 0) {
-    classificationSpan.textContent = "N/A";
-    return;
-  }
-
-  const avg = weighted / total;
+  const avg = total ? weighted / total : 0;
   let classif = "Fail";
   if (avg >= 70) classif = "First";
   else if (avg >= 60) classif = "2:1";
@@ -303,7 +282,7 @@ importFile.addEventListener("change", async (e) => {
     const data = JSON.parse(text);
     renderGrades(data);
     await saveGrades();
-  } catch (err) {
+  } catch {
     alert("Invalid JSON file.");
   }
 });
