@@ -1,11 +1,11 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-// Supabase setup
+// === Supabase Setup ===
 const supabaseUrl = "https://tgnhbmqgdupnzkbofotf.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// DOM Elements
+// === DOM Elements ===
 const authDiv = document.getElementById("auth");
 const appDiv = document.getElementById("app");
 const loginBtn = document.getElementById("login-btn");
@@ -59,7 +59,16 @@ logoutBtn.addEventListener("click", async () => {
 
 // === SESSION HANDLING ===
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) {
+    console.error("Session check failed:", error.message);
+    return;
+  }
+
   if (session) {
     showApp();
     await loadGrades();
@@ -82,45 +91,58 @@ function showAuth() {
 // === GRADE DATA LOGIC ===
 
 async function loadGrades() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
+  if (error || !user) {
+    console.error("Error loading user:", error?.message);
+    return;
+  }
+
+  const { data, error: gradeError } = await supabase
     .from("grades")
     .select("data")
     .eq("user_id", user.id)
     .single();
 
-  if (error) {
-    console.warn("No existing data or error:", error.message);
+  if (gradeError && gradeError.code !== "PGRST116") {
+    console.error("Error loading grades:", gradeError.message);
     return;
   }
 
-  renderGrades(data.data);
+  if (data) renderGrades(data.data);
 }
 
 async function saveGrades() {
   const gradeData = getCurrentGrades();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (error || !user) {
+    console.error("Error saving: user not found.");
+    return;
+  }
 
-  const { error } = await supabase
+  const { error: saveError } = await supabase
     .from("grades")
-    .upsert({ user_id: user.id, data: gradeData }, { onConflict: ['user_id'] });
+    .upsert({ user_id: user.id, data: gradeData }, { onConflict: ["user_id"] });
 
-  if (error) {
-    console.error("Save failed:", error.message);
+  if (saveError) {
+    console.error("Save failed:", saveError.message);
   } else {
     saveMsg.style.display = "block";
-    setTimeout(() => saveMsg.style.display = "none", 2000);
+    setTimeout(() => (saveMsg.style.display = "none"), 2000);
   }
 }
 
 function getCurrentGrades() {
-  const years = [...document.querySelectorAll(".year")].map(year => {
+  const years = [...document.querySelectorAll(".year")].map((year) => {
     const yearName = year.querySelector(".year-name").textContent;
-    const modules = [...year.querySelectorAll(".module")].map(module => {
+    const modules = [...year.querySelectorAll(".module")].map((module) => {
       const name = module.querySelector(".module-name").value;
       const grade = parseFloat(module.querySelector(".module-grade").value) || 0;
       const credits = parseFloat(module.querySelector(".module-credits").value) || 0;
@@ -128,6 +150,7 @@ function getCurrentGrades() {
     });
     return { yearName, modules };
   });
+
   return years;
 }
 
@@ -137,7 +160,7 @@ function renderGrades(data) {
 
   data.forEach((year, index) => {
     const yearDiv = createYear(index, year.yearName);
-    year.modules.forEach(mod => addModule(yearDiv, mod));
+    year.modules.forEach((mod) => addModule(yearDiv, mod));
     yearsContainer.appendChild(yearDiv);
   });
 
@@ -203,10 +226,11 @@ function addModule(yearDiv, data = { name: "", grade: 0, credits: 0 }) {
 
 function updateClassification() {
   const grades = getCurrentGrades();
-  let total = 0, weighted = 0;
+  let total = 0,
+    weighted = 0;
 
-  grades.forEach(year => {
-    year.modules.forEach(mod => {
+  grades.forEach((year) => {
+    year.modules.forEach((mod) => {
       weighted += mod.grade * mod.credits;
       total += mod.credits;
     });
@@ -258,10 +282,14 @@ importFile.addEventListener("change", async (e) => {
   if (!file) return;
 
   const text = await file.text();
-  const data = JSON.parse(text);
-  renderGrades(data);
-  await saveGrades();
+  try {
+    const data = JSON.parse(text);
+    renderGrades(data);
+    await saveGrades();
+  } catch (err) {
+    alert("Invalid JSON file.");
+  }
 });
 
-// === INIT ===
+// === INITIAL LOAD ===
 checkSession();
