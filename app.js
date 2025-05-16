@@ -1,65 +1,10 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Initialize Supabase
-const supabase = createClient(
-  'https://tgnhbmqgdupnzkbofotf.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
-);
-
-// Auth logic (safe to add at the top)
-document.addEventListener('DOMContentLoaded', async () => {
-  const auth = document.getElementById('auth');
-  const app = document.getElementById('app');
-  const loginBtn = document.getElementById('login-btn');
-  const signupBtn = document.getElementById('signup-btn');
-  const logoutBtn = document.getElementById('logout-btn');
-  const authError = document.getElementById('auth-error');
-
-  // Check if already logged in
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    auth.style.display = 'none';
-    app.style.display = 'block';
-    init(); // You already have this in your full code
-  }
-
-  loginBtn?.addEventListener('click', async () => {
-    const email = document.getElementById('email')?.value;
-    const password = document.getElementById('password')?.value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      authError.textContent = error.message;
-    } else {
-      authError.textContent = '';
-      auth.style.display = 'none';
-      app.style.display = 'block';
-      init();
-    }
-  });
-
-  signupBtn?.addEventListener('click', async () => {
-    const email = document.getElementById('email')?.value;
-    const password = document.getElementById('password')?.value;
-    const { error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      authError.textContent = error.message;
-    } else {
-      authError.textContent = 'Check your email to confirm your account.';
-    }
-  });
-
-  logoutBtn?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    auth.style.display = 'flex';
-    app.style.display = 'none';
-  });
-});
 // ─── Supabase Client ─────────────────────────────────────────────────────────
 const SUPABASE_URL     = "https://tgnhbmqgdupnzkbofotf.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── App State ───────────────────────────────────────────────────────────────
 let data = { years: [] };
@@ -69,24 +14,34 @@ let user = null;
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
   user = session?.user || null;
-  document.getElementById("login").style.display = user ? "none" : "block";
-  document.getElementById("app").style.display   = user ? "block" : "none";
+  document.getElementById("auth").style.display = user ? "none" : "flex";
+  document.getElementById("app").style.display  = user ? "block" : "none";
   if (user) loadGrades();
 }
+
 async function signIn() {
   const email    = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return alert("Login error: " + error.message);
-  checkLogin();
+  if (error) {
+    document.getElementById("auth-error").textContent = error.message;
+  } else {
+    document.getElementById("auth-error").textContent = "";
+    checkLogin();
+  }
 }
+
 async function signUp() {
   const email    = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) return alert("Signup error: " + error.message);
-  alert("Signup successful! Check your email to confirm.");
+  if (error) {
+    document.getElementById("auth-error").textContent = error.message;
+  } else {
+    document.getElementById("auth-error").textContent = "Check your email to confirm your account.";
+  }
 }
+
 async function signOut() {
   await supabase.auth.signOut();
   location.reload();
@@ -98,7 +53,7 @@ async function getToken() {
   return session?.access_token;
 }
 
-// ─── DATA OPERATIONS ──────────────────────────────────────────────────────────
+// ─── DATA OPERATIONS ─────────────────────────────────────────────────────────
 async function loadGrades() {
   const token = await getToken();
   const res   = await fetch("/.netlify/functions/getGrades", {
@@ -107,12 +62,10 @@ async function loadGrades() {
   const json = await res.json();
   data = json || { years: [] };
 
-  // Force collapsed default on every load
+  // Collapse all by default
   data.years.forEach(y => {
     y.collapsed = true;
-    y.modules.forEach(m => {
-      m.collapsed = true;
-    });
+    y.modules.forEach(m => m.collapsed = true);
   });
 
   render();
@@ -121,7 +74,7 @@ async function loadGrades() {
 async function saveGrades() {
   const token = await getToken();
   await fetch("/.netlify/functions/saveGrades", {
-    method:  "POST",
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
@@ -131,31 +84,33 @@ async function saveGrades() {
   showSaveMessage();
 }
 
-// ─── CALCULATIONS ─────────────────────────────────────────────────────────────
+// ─── CALCULATIONS ────────────────────────────────────────────────────────────
 function calculateModuleGrade(ass) {
   let total = 0, wsum = 0;
   ass.forEach(a => {
-    total += (a.mark||0) * (a.weight||0) / 100;
-    wsum  += a.weight||0;
+    total += (a.mark || 0) * (a.weight || 0) / 100;
+    wsum  += a.weight || 0;
   });
   return wsum === 100 ? total.toFixed(1) + "%" : `${total.toFixed(1)}% (incomplete)`;
 }
+
 function calculateYearAvg(year) {
   let sum = 0, cred = 0;
   year.modules.forEach(m => {
     const g = parseFloat(calculateModuleGrade(m.assessments));
     if (!isNaN(g)) { sum += g * m.credits; cred += m.credits; }
   });
-  return cred ? (sum/cred).toFixed(1) + "%" : "-";
+  return cred ? (sum / cred).toFixed(1) + "%" : "-";
 }
+
 function calculateOverall() {
   let sum = 0, cred = 0;
   data.years.forEach(y => y.modules.forEach(m => {
     const g = parseFloat(calculateModuleGrade(m.assessments));
-    if (!isNaN(g)) { sum += g*m.credits; cred += m.credits; }
+    if (!isNaN(g)) { sum += g * m.credits; cred += m.credits; }
   }));
   if (!cred) return "-";
-  const avg = sum/cred;
+  const avg = sum / cred;
   if (avg >= 70) return "First";
   if (avg >= 60) return "2:1";
   if (avg >= 50) return "2:2";
@@ -163,7 +118,7 @@ function calculateOverall() {
   return "Fail";
 }
 
-// ─── UI ACTIONS ───────────────────────────────────────────────────────────────
+// ─── UI ACTIONS ──────────────────────────────────────────────────────────────
 function toggleYear(yearIdx) {
   data.years[yearIdx].collapsed = !data.years[yearIdx].collapsed;
   render();
@@ -174,7 +129,7 @@ function toggleModule(yearIdx, modIdx) {
 }
 function addYear() {
   data.years.push({
-    name: `Year ${data.years.length+1}`,
+    name: `Year ${data.years.length + 1}`,
     collapsed: true,
     modules: []
   });
@@ -185,12 +140,12 @@ function addModule(y) {
     name: "Module",
     credits: 20,
     assessments: [],
-    collapsed: false    // new modules start open
+    collapsed: false
   });
   render();
 }
-function addAssessment(y,m) {
-  data.years[y].modules[m].assessments.push({ mark:0, weight:0 });
+function addAssessment(y, m) {
+  data.years[y].modules[m].assessments.push({ mark: 0, weight: 0 });
   render();
 }
 function updateField(evt, y, m, a, field) {
@@ -213,39 +168,31 @@ function render() {
   data.years.forEach((yr, yi) => {
     const yDiv = document.createElement("div");
     yDiv.className = "year";
-
-    // Calculate this year's average
     const yearAvg = calculateYearAvg(yr);
 
     if (yr.collapsed) {
-      // Collapsed Year: show name + avg + expand arrow
       yDiv.innerHTML = `
         <strong>${yr.name}</strong> — ${yearAvg}
-        <button onclick="toggleYear(${yi})" aria-label="Expand Year">▶</button>
+        <button onclick="toggleYear(${yi})">▶</button>
       `;
     } else {
-      // Expanded Year: collapse arrow + name + avg + modules
       let html = `
-        <button onclick="toggleYear(${yi})" aria-label="Collapse Year">▼</button>
+        <button onclick="toggleYear(${yi})">▼</button>
         <strong>${yr.name}</strong> — ${yearAvg}
         <button onclick="addModule(${yi})">+ Add Module</button>
       `;
-
-      // Render its modules
       yr.modules.forEach((m, mi) => {
         const modGrade = calculateModuleGrade(m.assessments);
         if (m.collapsed) {
-          // Collapsed Module
           html += `
             <div class="module-collapsed">
               <em>${m.name}</em> — ${modGrade}
-              <button onclick="toggleModule(${yi},${mi})" aria-label="Expand Module">▶</button>
+              <button onclick="toggleModule(${yi},${mi})">▶</button>
             </div>
           `;
         } else {
-          // Expanded Module
           html += `<div class="module">
-            <button onclick="toggleModule(${yi},${mi})" aria-label="Collapse Module">▼</button><br/>
+            <button onclick="toggleModule(${yi},${mi})">▼</button><br/>
             <input value="${m.name}" onchange="updateField(event,${yi},${mi},null,'name')" />
             <input type="number" value="${m.credits}" onchange="updateField(event,${yi},${mi},null,'credits')" /> credits
             <button onclick="addAssessment(${yi},${mi})">+ Add Assessment</button><br/>
@@ -259,27 +206,24 @@ function render() {
           html += `<div><strong>Grade:</strong> ${modGrade}</div></div>`;
         }
       });
-
       yDiv.innerHTML = html;
     }
-
     yearsEl.appendChild(yDiv);
   });
 
-  // Update overall classification with percentage
+  // Show overall
   const overallAvg = (() => {
-    // reuse calculation logic
     let sum = 0, cred = 0;
     data.years.forEach(y => y.modules.forEach(m => {
       const g = parseFloat(calculateModuleGrade(m.assessments));
       if (!isNaN(g)) { sum += g * m.credits; cred += m.credits; }
     }));
-    return cred ? (sum/cred).toFixed(1) + "%" : "-";
+    return cred ? (sum / cred).toFixed(1) + "%" : "-";
   })();
 
   const overallClass = calculateOverall();
   document.getElementById("classification").innerText =
-    `${overallAvg} – ${overallClass}`;
+    `${overallAvg} – ${overallClass}`;
 }
 
 // ─── SAVE MSG / RESET / EXPORT / IMPORT ──────────────────────────────────────
@@ -318,9 +262,14 @@ function importData(evt) {
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
-checkLogin();
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("login-btn")?.addEventListener("click", signIn);
+  document.getElementById("signup-btn")?.addEventListener("click", signUp);
+  document.getElementById("logout-btn")?.addEventListener("click", signOut);
+  checkLogin();
+});
 
-// Expose to HTML
+// ─── Expose to HTML ──────────────────────────────────────────────────────────
 window.signIn        = signIn;
 window.signUp        = signUp;
 window.signOut       = signOut;
