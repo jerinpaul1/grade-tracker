@@ -1,3 +1,61 @@
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+// Initialize Supabase
+const supabase = createClient(
+  'https://tgnhbmqgdupnzkbofotf.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
+);
+
+// Auth logic (safe to add at the top)
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = document.getElementById('auth');
+  const app = document.getElementById('app');
+  const loginBtn = document.getElementById('login-btn');
+  const signupBtn = document.getElementById('signup-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const authError = document.getElementById('auth-error');
+
+  // Check if already logged in
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    auth.style.display = 'none';
+    app.style.display = 'block';
+    init(); // You already have this in your full code
+  }
+
+  loginBtn?.addEventListener('click', async () => {
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      authError.textContent = error.message;
+    } else {
+      authError.textContent = '';
+      auth.style.display = 'none';
+      app.style.display = 'block';
+      init();
+    }
+  });
+
+  signupBtn?.addEventListener('click', async () => {
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
+    const { error } = await supabase.auth.signUp({ email, password });
+
+    if (error) {
+      authError.textContent = error.message;
+    } else {
+      authError.textContent = 'Check your email to confirm your account.';
+    }
+  });
+
+  logoutBtn?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    auth.style.display = 'flex';
+    app.style.display = 'none';
+  });
+});
 // ─── Supabase Client ─────────────────────────────────────────────────────────
 const SUPABASE_URL     = "https://tgnhbmqgdupnzkbofotf.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o";
