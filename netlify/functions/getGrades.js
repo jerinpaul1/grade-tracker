@@ -2,17 +2,42 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   'https://tgnhbmqgdupnzkbofotf.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-exports.handler = async function () {
+exports.handler = async (event) => {
+  const token = event.headers.authorization?.replace('Bearer ', '');
+
+  if (!token) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Missing auth token' })
+    };
+  }
+
+  const { data: user, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !user) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Invalid token' })
+    };
+  }
+
   const { data, error } = await supabase
     .from('grades')
-    .select('*')
+    .select('data')
+    .eq('user_id', user.id)
     .single();
+
+  if (error && error.code !== 'PGRST116') {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+  }
 
   return {
     statusCode: 200,
-    body: JSON.stringify(data?.data || [])
+    body: JSON.stringify(data?.data || null)
   };
 };
