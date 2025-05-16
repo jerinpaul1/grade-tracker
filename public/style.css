@@ -1,0 +1,75 @@
+:root {
+  --primary-color: #2c3e50;
+  --accent-color: #3498db;
+  --bg-color: #ecf0f1;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: var(--bg-color);
+  color: var(--primary-color);
+}
+
+.grade-tracker {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+header h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+form label {
+  font-weight: bold;
+}
+
+form input,
+form button {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+form button {
+  background: var(--accent-color);
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#message {
+  margin-top: 0.5rem;
+  min-height: 1.2em;
+}
+
+#grades-list {
+  list-style: none;
+  padding: 0;
+}
+
+#grades-list li {
+  padding: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+@media (max-width: 500px) {
+  .grade-tracker {
+    margin: 1rem;
+  }
+}
