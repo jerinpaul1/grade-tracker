@@ -28,15 +28,15 @@
     </div>
 
     <div class="controls">
-      <button id="add-year-btn" class="btn primary" onclick="addYear()">+ Add Year</button> <!-- ADDED onclick -->
-      <button id="save-btn" class="btn secondary" onclick="saveGrades()">💾 Save</button>   <!-- ADDED onclick -->
-      <button id="clear-btn" class="btn secondary" onclick="resetData()">🗑 Clear</button> <!-- ADDED onclick -->
-      <button id="export-btn" class="btn secondary" onclick="exportData()">📤 Export</button> <!-- ADDED onclick -->
-      <button id="import-btn" class="btn secondary" onclick="document.getElementById('import-file').click()">📥 Import</button>
-      <input type="file" id="import-file" style="display: none;" onchange="importData(event)" /> <!-- ADDED onchange -->
+      <button id="add-year-btn" class="btn primary">+ Add Year</button>
+      <button id="save-btn" class="btn secondary">💾 Save</button>
+      <button id="clear-btn" class="btn secondary">🗑 Clear</button>
+      <button id="export-btn" class="btn secondary">📤 Export</button>
+      <button id="import-btn" class="btn secondary">📥 Import</button>
+      <input type="file" id="import-file" style="display: none;" />
     </div>
 
-    <div id="years"></div> <!-- CHANGED from id="years-container" to id="years" -->
+    <div id="years-container"></div> <!-- ✅ fixed ID -->
 
     <div class="footer">
       Degree Classification: <span id="classification"></span>
