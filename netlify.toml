@@ -1,6 +1,11 @@
 [build]
-  functions = "netlify/functions"
+  command   = "npm run build"
+  publish   = "public"
+
+[build.environment]
+  # Set these in Netlify dashboard or here:
+  SUPABASE_URL = "https://tgnhbmqgdupnzkbofotf.supabase.co"
+  SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o"
 
 [functions]
-  # give your functions access to Supabase env vars
-  node_bundler = "esbuild"
+  directory = "netlify/functions"
