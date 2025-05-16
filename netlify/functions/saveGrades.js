@@ -1,42 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  process.env.tgnhbmqgdupnzkbofotf.supabase.co,
-  process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzQwMTI1NiwiZXhwIjoyMDYyOTc3MjU2fQ.Do_77abJm010MsVH3FXkbY-UKmeQVsWokQ2Qe0MKtvY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 exports.handler = async (event, context) => {
-  const { user } = context.clientContext;
-  if (!user) {
-    return { statusCode: 401, body: 'Not authenticated' };
-  }
+  const auth = context.clientContext?.user;
+  if (!auth) return { statusCode: 401, body: "Not authenticated" };
 
-  const { data: newGrades } = JSON.parse(event.body);
+  if (event.httpMethod !== 'POST')
+    return { statusCode: 405, body: "Method Not Allowed" };
 
-  const userId = user.sub;
+  const gradesData = JSON.parse(event.body);
 
-  // Try to update
-  const { error: updateError } = await supabase
+  // Upsert on conflict user_id
+  const { error } = await supabase
     .from('grades')
-    .update({ data: newGrades })
-    .eq('user_id', userId);
+    .upsert(
+      { user_id: auth.sub, data: gradesData },
+      { onConflict: 'user_id' }
+    );
 
-  // If update failed (maybe row doesn't exist), try insert
-  if (updateError) {
-    const { error: insertError } = await supabase
-      .from('grades')
-      .insert([{ user_id: userId, data: newGrades }]);
-
-    if (insertError) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: insertError.message }),
-      };
-    }
-  }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ success: true }),
-  };
+  if (error) return { statusCode: 500, body: error.message };
+  return { statusCode: 200, body: JSON.stringify({ success: true }) };
 };
