@@ -1,185 +1,246 @@
-const supabaseClient = supabase.createClient(
-  'https://tgnhbmqgdupnzkbofotf.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
+let data = {
+  years: []
+};
+
+let user = null;
+
+const supabase = window.supabase.createClient(
+  "https://tgnhbmqgdupnzkbofotf.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o"
 );
 
-let currentSession = null;
-
-async function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) return alert('Login error: ' + error.message);
-
-  currentSession = data.session;
-  document.getElementById('auth-container').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = 'inline-block';
-  await loadGrades();
-}
-
-async function signup() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) return alert('Signup error: ' + error.message);
-
-  alert('Check your email to confirm the signup.');
-}
-
-async function logout() {
-  await supabaseClient.auth.signOut();
-  currentSession = null;
-  document.getElementById('auth-container').style.display = 'block';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('yearContainer').innerHTML = '';
-}
-
-supabaseClient.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    currentSession = data.session;
-    document.getElementById('auth-container').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
+async function checkLogin() {
+  const { data: session } = await supabase.auth.getSession();
+  user = session.session?.user;
+  if (!user) {
+    document.getElementById("login").style.display = "block";
+    document.getElementById("app").style.display = "none";
+  } else {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
     loadGrades();
   }
-});
-
-// Grade logic
-document.getElementById("addYearBtn").addEventListener("click", () => {
-  const yearContainer = document.getElementById("yearContainer");
-  const yearDiv = document.createElement("div");
-  yearDiv.className = "year";
-  yearDiv.innerHTML = `
-    <h2 contenteditable="true">Year</h2>
-    <button class="addModuleBtn">Add Module</button>
-    <div class="modules"></div>
-  `;
-  yearDiv.querySelector(".addModuleBtn").addEventListener("click", () => {
-    const moduleDiv = document.createElement("div");
-    moduleDiv.className = "module";
-    moduleDiv.innerHTML = `
-      <input placeholder="Module Name">
-      <input placeholder="Credits" type="number">
-      <button class="addAssessmentBtn">Add Assessment</button>
-      <div class="assessments"></div>
-    `;
-    moduleDiv.querySelector(".addAssessmentBtn").addEventListener("click", () => {
-      const aDiv = document.createElement("div");
-      aDiv.className = "assessment";
-      aDiv.innerHTML = `
-        <input placeholder="Mark" type="number">
-        <input placeholder="Weight %" type="number">
-      `;
-      moduleDiv.querySelector(".assessments").appendChild(aDiv);
-    });
-    yearDiv.querySelector(".modules").appendChild(moduleDiv);
-  });
-  yearContainer.appendChild(yearDiv);
-});
-
-function extractData() {
-  const years = [];
-  document.querySelectorAll(".year").forEach(y => {
-    const modules = [];
-    y.querySelectorAll(".module").forEach(m => {
-      const assessments = [];
-      m.querySelectorAll(".assessment").forEach(a => {
-        assessments.push({
-          mark: parseFloat(a.children[0].value),
-          weight: parseFloat(a.children[1].value),
-        });
-      });
-      modules.push({
-        name: m.children[0].value,
-        credits: parseFloat(m.children[1].value),
-        assessments
-      });
-    });
-    years.push({
-      year: y.querySelector("h2").innerText,
-      modules
-    });
-  });
-  return years;
 }
 
-function restoreFromData(data) {
-  document.getElementById("yearContainer").innerHTML = "";
-  data.forEach(yr => {
+async function signIn() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) alert(error.message);
+  else checkLogin();
+}
+
+async function signOut() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+function addYear() {
+  const yearNumber = data.years.length + 1;
+  data.years.push({
+    name: `Year ${yearNumber}`,
+    modules: []
+  });
+  render();
+}
+
+function addModule(yearIndex) {
+  data.years[yearIndex].modules.push({
+    name: "Module",
+    credits: 20,
+    assessments: []
+  });
+  render();
+}
+
+function addAssessment(yearIndex, moduleIndex) {
+  data.years[yearIndex].modules[moduleIndex].assessments.push({
+    mark: 0,
+    weight: 0
+  });
+  render();
+}
+
+function updateField(event, yearIndex, moduleIndex, assessIndex, field) {
+  const value = event.target.value;
+  if (assessIndex !== null) {
+    data.years[yearIndex].modules[moduleIndex].assessments[assessIndex][field] = parseFloat(value);
+  } else if (field === "credits") {
+    data.years[yearIndex].modules[moduleIndex][field] = parseFloat(value);
+  } else {
+    data.years[yearIndex].modules[moduleIndex][field] = value;
+  }
+  render();
+}
+
+function calculateModuleGrade(assessments) {
+  let total = 0;
+  let weightSum = 0;
+  for (let a of assessments) {
+    total += (a.mark || 0) * (a.weight || 0) / 100;
+    weightSum += a.weight || 0;
+  }
+  return weightSum === 100 ? total : `${total.toFixed(2)} (incomplete)`;
+}
+
+function calculateYearAverage(year) {
+  let weightedSum = 0;
+  let creditSum = 0;
+  for (let mod of year.modules) {
+    const grade = calculateModuleGrade(mod.assessments);
+    if (typeof grade === "number") {
+      weightedSum += grade * mod.credits;
+      creditSum += mod.credits;
+    }
+  }
+  return creditSum > 0 ? (weightedSum / creditSum).toFixed(2) : "-";
+}
+
+function calculateOverallClassification() {
+  let totalCredits = 0;
+  let totalWeighted = 0;
+  for (let year of data.years) {
+    for (let mod of year.modules) {
+      const grade = calculateModuleGrade(mod.assessments);
+      if (typeof grade === "number") {
+        totalCredits += mod.credits;
+        totalWeighted += grade * mod.credits;
+      }
+    }
+  }
+
+  if (totalCredits === 0) return "-";
+  const avg = totalWeighted / totalCredits;
+  if (avg >= 70) return "First";
+  if (avg >= 60) return "2:1";
+  if (avg >= 50) return "2:2";
+  if (avg >= 40) return "Third";
+  return "Fail";
+}
+
+function render() {
+  const container = document.getElementById("years");
+  container.innerHTML = "";
+  data.years.forEach((year, yIdx) => {
     const yearDiv = document.createElement("div");
     yearDiv.className = "year";
-    yearDiv.innerHTML = `
-      <h2 contenteditable="true">${yr.year}</h2>
-      <button class="addModuleBtn">Add Module</button>
-      <div class="modules"></div>
-    `;
-    yearDiv.querySelector(".addModuleBtn").addEventListener("click", () => {
-      const moduleDiv = document.createElement("div");
-      moduleDiv.className = "module";
-      moduleDiv.innerHTML = `
-        <input placeholder="Module Name">
-        <input placeholder="Credits" type="number">
-        <button class="addAssessmentBtn">Add Assessment</button>
-        <div class="assessments"></div>
+    yearDiv.innerHTML = `<h2>${year.name}</h2>
+      <button onclick="addModule(${yIdx})">Add Module</button>`;
+
+    year.modules.forEach((mod, mIdx) => {
+      const modDiv = document.createElement("div");
+      modDiv.className = "module";
+      modDiv.innerHTML = `
+        <input value="${mod.name}" onchange="updateField(event, ${yIdx}, ${mIdx}, null, 'name')" />
+        <input type="number" value="${mod.credits}" onchange="updateField(event, ${yIdx}, ${mIdx}, null, 'credits')" /> credits
+        <button onclick="addAssessment(${yIdx}, ${mIdx})">Add Assessment</button>
       `;
-      moduleDiv.querySelector(".addAssessmentBtn").addEventListener("click", () => {
-        const aDiv = document.createElement("div");
-        aDiv.className = "assessment";
-        aDiv.innerHTML = `
-          <input placeholder="Mark" type="number">
-          <input placeholder="Weight %" type="number">
+
+      mod.assessments.forEach((a, aIdx) => {
+        const assessDiv = document.createElement("div");
+        assessDiv.className = "assessment";
+        assessDiv.innerHTML = `
+          Mark: <input type="number" value="${a.mark}" onchange="updateField(event, ${yIdx}, ${mIdx}, ${aIdx}, 'mark')" />
+          Weighting: <input type="number" value="${a.weight}" onchange="updateField(event, ${yIdx}, ${mIdx}, ${aIdx}, 'weight')" />
         `;
-        moduleDiv.querySelector(".assessments").appendChild(aDiv);
+        modDiv.appendChild(assessDiv);
       });
-      yearDiv.querySelector(".modules").appendChild(moduleDiv);
+
+      const grade = calculateModuleGrade(mod.assessments);
+      modDiv.innerHTML += `<div><strong>Grade:</strong> ${grade}</div>`;
+      yearDiv.appendChild(modDiv);
     });
-    const moduleContainer = yearDiv.querySelector(".modules");
-    yr.modules.forEach(m => {
-      const moduleDiv = document.createElement("div");
-      moduleDiv.className = "module";
-      moduleDiv.innerHTML = `
-        <input placeholder="Module Name" value="${m.name}">
-        <input placeholder="Credits" type="number" value="${m.credits}">
-        <button class="addAssessmentBtn">Add Assessment</button>
-        <div class="assessments"></div>
-      `;
-      const aContainer = moduleDiv.querySelector(".assessments");
-      m.assessments.forEach(a => {
-        const aDiv = document.createElement("div");
-        aDiv.className = "assessment";
-        aDiv.innerHTML = `
-          <input placeholder="Mark" type="number" value="${a.mark}">
-          <input placeholder="Weight %" type="number" value="${a.weight}">
-        `;
-        aContainer.appendChild(aDiv);
-      });
-      moduleContainer.appendChild(moduleDiv);
-    });
-    document.getElementById("yearContainer").appendChild(yearDiv);
+
+    const avg = calculateYearAverage(year);
+    yearDiv.innerHTML += `<div><strong>Year Average:</strong> ${avg}</div>`;
+    container.appendChild(yearDiv);
   });
+
+  document.getElementById("classification").innerText = calculateOverallClassification();
 }
 
 async function loadGrades() {
-  if (!currentSession) return;
-  const res = await fetch('/.netlify/functions/getGrades', {
+  const res = await fetch("/.netlify/functions/getGrades", {
     headers: {
-      'Authorization': 'Bearer ' + currentSession.access_token
+      Authorization: `Bearer ${await getToken()}`
     }
   });
-  const data = await res.json();
-  if (data) restoreFromData(data);
+  const result = await res.json();
+  if (result.data) data = result.data;
+  render();
 }
 
 async function saveGrades() {
-  if (!currentSession) return;
-  const data = extractData();
-  await fetch('/.netlify/functions/saveGrades', {
-    method: 'POST',
+  await fetch("/.netlify/functions/saveGrades", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + currentSession.access_token
+      Authorization: `Bearer ${await getToken()}`,
+      "Content-Type": "application/json"
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify({ data })
   });
+  showSaveMessage();
 }
+
+async function getToken() {
+  const { data } = await supabase.auth.getSession();
+  return data.session.access_token;
+}
+
+// ==========================
+// New Features
+// ==========================
+
+function showSaveMessage() {
+  const msg = document.getElementById("save-msg");
+  msg.style.display = "inline";
+  setTimeout(() => (msg.style.display = "none"), 2000);
+}
+
+function resetData() {
+  if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+    data = { years: [] };
+    render();
+    saveGrades();
+  }
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "grades.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      data = JSON.parse(e.target.result);
+      render();
+      saveGrades();
+    } catch (err) {
+      alert("Invalid JSON file");
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ==========================
+// Init
+// ==========================
+checkLogin();
+window.signIn = signIn;
+window.signOut = signOut;
+window.addYear = addYear;
+window.addModule = addModule;
+window.addAssessment = addAssessment;
+window.updateField = updateField;
+window.saveGrades = saveGrades;
+window.resetData = resetData;
+window.exportData = exportData;
+window.importData = importData;
