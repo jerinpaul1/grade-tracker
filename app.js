@@ -1,160 +1,185 @@
-let data = [];
+const supabaseClient = supabase.createClient(
+  'https://tgnhbmqgdupnzkbofotf.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnbmhibXFnZHVwbnprYm9mb3RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDEyNTYsImV4cCI6MjA2Mjk3NzI1Nn0.gNk-pqah8xdmYjkY0qq217xoezqSVjVWsnasiXRmd1o'
+);
 
-const app = document.getElementById("app");
-const addYearBtn = document.getElementById("addYearBtn");
-const classificationEl = document.getElementById("classification");
+let currentSession = null;
 
-addYearBtn.onclick = () => {
-  const year = {
-    name: `Year ${data.length + 1}`,
-    modules: []
-  };
-  data.push(year);
-  render();
-  saveData();
-};
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
 
-function render() {
-  app.innerHTML = '';
-  data.forEach((year, yIndex) => {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return alert('Login error: ' + error.message);
+
+  currentSession = data.session;
+  document.getElementById('auth-container').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  await loadGrades();
+}
+
+async function signup() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return alert('Signup error: ' + error.message);
+
+  alert('Check your email to confirm the signup.');
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  currentSession = null;
+  document.getElementById('auth-container').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('yearContainer').innerHTML = '';
+}
+
+supabaseClient.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    currentSession = data.session;
+    document.getElementById('auth-container').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'inline-block';
+    loadGrades();
+  }
+});
+
+// Grade logic
+document.getElementById("addYearBtn").addEventListener("click", () => {
+  const yearContainer = document.getElementById("yearContainer");
+  const yearDiv = document.createElement("div");
+  yearDiv.className = "year";
+  yearDiv.innerHTML = `
+    <h2 contenteditable="true">Year</h2>
+    <button class="addModuleBtn">Add Module</button>
+    <div class="modules"></div>
+  `;
+  yearDiv.querySelector(".addModuleBtn").addEventListener("click", () => {
+    const moduleDiv = document.createElement("div");
+    moduleDiv.className = "module";
+    moduleDiv.innerHTML = `
+      <input placeholder="Module Name">
+      <input placeholder="Credits" type="number">
+      <button class="addAssessmentBtn">Add Assessment</button>
+      <div class="assessments"></div>
+    `;
+    moduleDiv.querySelector(".addAssessmentBtn").addEventListener("click", () => {
+      const aDiv = document.createElement("div");
+      aDiv.className = "assessment";
+      aDiv.innerHTML = `
+        <input placeholder="Mark" type="number">
+        <input placeholder="Weight %" type="number">
+      `;
+      moduleDiv.querySelector(".assessments").appendChild(aDiv);
+    });
+    yearDiv.querySelector(".modules").appendChild(moduleDiv);
+  });
+  yearContainer.appendChild(yearDiv);
+});
+
+function extractData() {
+  const years = [];
+  document.querySelectorAll(".year").forEach(y => {
+    const modules = [];
+    y.querySelectorAll(".module").forEach(m => {
+      const assessments = [];
+      m.querySelectorAll(".assessment").forEach(a => {
+        assessments.push({
+          mark: parseFloat(a.children[0].value),
+          weight: parseFloat(a.children[1].value),
+        });
+      });
+      modules.push({
+        name: m.children[0].value,
+        credits: parseFloat(m.children[1].value),
+        assessments
+      });
+    });
+    years.push({
+      year: y.querySelector("h2").innerText,
+      modules
+    });
+  });
+  return years;
+}
+
+function restoreFromData(data) {
+  document.getElementById("yearContainer").innerHTML = "";
+  data.forEach(yr => {
     const yearDiv = document.createElement("div");
-    const title = document.createElement("h2");
-    title.textContent = year.name;
-    yearDiv.appendChild(title);
-
-    const addModuleBtn = document.createElement("button");
-    addModuleBtn.textContent = "+ Add Module";
-    addModuleBtn.onclick = () => {
-      year.modules.push({
-        name: `Module ${year.modules.length + 1}`,
-        credits: 0,
-        assessments: []
+    yearDiv.className = "year";
+    yearDiv.innerHTML = `
+      <h2 contenteditable="true">${yr.year}</h2>
+      <button class="addModuleBtn">Add Module</button>
+      <div class="modules"></div>
+    `;
+    yearDiv.querySelector(".addModuleBtn").addEventListener("click", () => {
+      const moduleDiv = document.createElement("div");
+      moduleDiv.className = "module";
+      moduleDiv.innerHTML = `
+        <input placeholder="Module Name">
+        <input placeholder="Credits" type="number">
+        <button class="addAssessmentBtn">Add Assessment</button>
+        <div class="assessments"></div>
+      `;
+      moduleDiv.querySelector(".addAssessmentBtn").addEventListener("click", () => {
+        const aDiv = document.createElement("div");
+        aDiv.className = "assessment";
+        aDiv.innerHTML = `
+          <input placeholder="Mark" type="number">
+          <input placeholder="Weight %" type="number">
+        `;
+        moduleDiv.querySelector(".assessments").appendChild(aDiv);
       });
-      render();
-      saveData();
-    };
-    yearDiv.appendChild(addModuleBtn);
-
-    year.modules.forEach((mod, mIndex) => {
-      const modDiv = document.createElement("div");
-      const modTitle = document.createElement("input");
-      modTitle.value = mod.name;
-      modTitle.oninput = (e) => {
-        mod.name = e.target.value;
-        saveData();
-      };
-      const creditInput = document.createElement("input");
-      creditInput.type = "number";
-      creditInput.value = mod.credits;
-      creditInput.placeholder = "Credits";
-      creditInput.oninput = (e) => {
-        mod.credits = +e.target.value;
-        saveData();
-      };
-      modDiv.appendChild(modTitle);
-      modDiv.appendChild(creditInput);
-
-      const addAssessmentBtn = document.createElement("button");
-      addAssessmentBtn.textContent = "+ Add Assessment";
-      addAssessmentBtn.onclick = () => {
-        mod.assessments.push({ mark: 0, weight: 0 });
-        render();
-        saveData();
-      };
-      modDiv.appendChild(addAssessmentBtn);
-
-      let totalWeight = 0;
-      let weightedMark = 0;
-
-      mod.assessments.forEach((a, aIndex) => {
-        const markInput = document.createElement("input");
-        markInput.type = "number";
-        markInput.value = a.mark;
-        markInput.placeholder = "Mark";
-        markInput.oninput = (e) => {
-          a.mark = +e.target.value;
-          render();
-          saveData();
-        };
-
-        const weightInput = document.createElement("input");
-        weightInput.type = "number";
-        weightInput.value = a.weight;
-        weightInput.placeholder = "Weight %";
-        weightInput.oninput = (e) => {
-          a.weight = +e.target.value;
-          render();
-          saveData();
-        };
-
-        modDiv.appendChild(markInput);
-        modDiv.appendChild(weightInput);
-
-        totalWeight += a.weight;
-        weightedMark += (a.mark * a.weight) / 100;
-      });
-
-      if (totalWeight <= 100) {
-        const remaining = 100 - totalWeight;
-        const requiredForFirst = Math.max(0, (70 * 100 - weightedMark * 100) / remaining);
-        const predictedText = remaining > 0
-          ? `Remaining: ${remaining}%. To get 70%, need ${requiredForFirst.toFixed(1)}%.`
-          : `Module grade: ${weightedMark.toFixed(1)}%`;
-
-        const pred = document.createElement("p");
-        pred.textContent = predictedText;
-        modDiv.appendChild(pred);
-      }
-
-      yearDiv.appendChild(modDiv);
+      yearDiv.querySelector(".modules").appendChild(moduleDiv);
     });
-
-    app.appendChild(yearDiv);
+    const moduleContainer = yearDiv.querySelector(".modules");
+    yr.modules.forEach(m => {
+      const moduleDiv = document.createElement("div");
+      moduleDiv.className = "module";
+      moduleDiv.innerHTML = `
+        <input placeholder="Module Name" value="${m.name}">
+        <input placeholder="Credits" type="number" value="${m.credits}">
+        <button class="addAssessmentBtn">Add Assessment</button>
+        <div class="assessments"></div>
+      `;
+      const aContainer = moduleDiv.querySelector(".assessments");
+      m.assessments.forEach(a => {
+        const aDiv = document.createElement("div");
+        aDiv.className = "assessment";
+        aDiv.innerHTML = `
+          <input placeholder="Mark" type="number" value="${a.mark}">
+          <input placeholder="Weight %" type="number" value="${a.weight}">
+        `;
+        aContainer.appendChild(aDiv);
+      });
+      moduleContainer.appendChild(moduleDiv);
+    });
+    document.getElementById("yearContainer").appendChild(yearDiv);
   });
-
-  showClassification();
 }
 
-function showClassification() {
-  let totalWeighted = 0;
-  let totalCredits = 0;
-
-  data.forEach(year => {
-    year.modules.forEach(mod => {
-      let mark = 0;
-      let weight = 0;
-      mod.assessments.forEach(a => {
-        mark += a.mark * a.weight / 100;
-        weight += a.weight;
-      });
-      if (weight > 0) {
-        totalWeighted += (mark * mod.credits);
-        totalCredits += mod.credits;
-      }
-    });
+async function loadGrades() {
+  if (!currentSession) return;
+  const res = await fetch('/.netlify/functions/getGrades', {
+    headers: {
+      'Authorization': 'Bearer ' + currentSession.access_token
+    }
   });
-
-  const avg = totalCredits > 0 ? totalWeighted / totalCredits : 0;
-  let grade = "Fail";
-  if (avg >= 70) grade = "First";
-  else if (avg >= 60) grade = "2:1";
-  else if (avg >= 50) grade = "2:2";
-  else if (avg >= 40) grade = "Third";
-
-  classificationEl.textContent = `Overall Average: ${avg.toFixed(1)}% → ${grade}`;
+  const data = await res.json();
+  if (data) restoreFromData(data);
 }
 
-async function saveData() {
-  await fetch("/.netlify/functions/saveGrades", {
-    method: "POST",
+async function saveGrades() {
+  if (!currentSession) return;
+  const data = extractData();
+  await fetch('/.netlify/functions/saveGrades', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + currentSession.access_token
+    },
     body: JSON.stringify(data)
   });
 }
-
-async function loadData() {
-  const res = await fetch("/.netlify/functions/getGrades");
-  data = await res.json();
-  render();
-}
-
-loadData();
