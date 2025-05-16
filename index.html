@@ -5,45 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Grade Tracker</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-   <!-- Login Page -->
+
+  <!-- Authentication -->
   <div id="auth" class="auth-container">
     <h1>Welcome to GradeTrak 🎓</h1>
     <input type="email" id="email" placeholder="Email" required />
     <input type="password" id="password" placeholder="Password" required />
     <div class="auth-buttons">
-      <button id="login-btn" class="btn primary" onclick="login()">🔐 Login</button>
-      <button id="signup-btn" class="btn secondary" onclick="signup()">📝 Sign Up</button>
+      <button id="login-btn" class="btn primary">🔐 Login</button>
+      <button id="signup-btn" class="btn secondary">📝 Sign Up</button>
     </div>
-    <p id="auth-error" class="error-msg"></p>
+    <div id="auth-error" class="error-msg"></div>
   </div>
 
-  <!-- Main App -->
+  <!-- App Content -->
   <div id="app" class="app-container" style="display: none;">
-    
+    <!-- your grade tracking UI here -->
     <div class="header">
-      <h1>📊 Grade Tracker</h1>
-      <button class="btn secondary" onclick="signOut()">🚪 Log Out</button>
+      <h1>Grade Tracker</h1>
+      <button id="logout-btn" class="btn secondary">🚪 Log Out</button>
     </div>
-
     <div class="controls">
-      <button class="btn primary" onclick="addYear()">➕ Add Year</button>
-      <button class="btn secondary" onclick="resetData()">🧹 Reset</button>
-      <button class="btn secondary" onclick="saveGrades()">💾 Save</button>
-      <span id="save-msg" class="save-msg">✅ Saved!</span>
-      <button class="btn secondary" onclick="exportData()">📤 Export</button>
-      <button class="btn secondary" onclick="document.getElementById('import-input').click()">📥 Import</button>
-      <input id="import-input" type="file" accept=".json" onchange="importData(event)" hidden />
+      <button id="add-year-btn" class="btn primary">+ Add Year</button>
+      <button id="save-btn" class="btn secondary">💾 Save</button>
+      <button id="clear-btn" class="btn secondary">🗑 Clear</button>
+      <button id="export-btn" class="btn secondary">📤 Export</button>
+      <button id="import-btn" class="btn secondary">📥 Import</button>
+      <input type="file" id="import-file" style="display: none;" />
     </div>
-
-    <div id="years" class="years-container"></div>
-
+    <div id="years-container"></div>
     <div class="footer">
-      <h2>🎓 Degree Classification: <span id="classification">-</span></h2>
+      Degree Classification: <span id="classification"></span>
     </div>
+    <div class="save-msg" id="save-msg">✔️ Save Successful</div>
   </div>
 
   <script type="module" src="app.js"></script>
