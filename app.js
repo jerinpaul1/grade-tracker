@@ -42,7 +42,6 @@ async function getToken() {
 
 // ─── DATA OPERATIONS ──────────────────────────────────────────────────────────
 async function loadGrades() {
-  // Fetch saved data
   const token = await getToken();
   const res   = await fetch("/.netlify/functions/getGrades", {
     headers: { Authorization: `Bearer ${token}` }
@@ -50,13 +49,13 @@ async function loadGrades() {
   const json = await res.json();
   data = json || { years: [] };
 
-  // ─── FORCE COLLAPSED ON EVERY LOAD ─────────────────────────────────────────
+  // Force collapsed default on every load
   data.years.forEach(y => {
+    y.collapsed = true;
     y.modules.forEach(m => {
       m.collapsed = true;
     });
   });
-  // ────────────────────────────────────────────────────────────────────────────
 
   render();
 }
@@ -107,13 +106,20 @@ function calculateOverall() {
 }
 
 // ─── UI ACTIONS ───────────────────────────────────────────────────────────────
+function toggleYear(yearIdx) {
+  data.years[yearIdx].collapsed = !data.years[yearIdx].collapsed;
+  render();
+}
 function toggleModule(yearIdx, modIdx) {
-  const m = data.years[yearIdx].modules[modIdx];
-  m.collapsed = !m.collapsed;
+  data.years[yearIdx].modules[modIdx].collapsed = !data.years[yearIdx].modules[modIdx].collapsed;
   render();
 }
 function addYear() {
-  data.years.push({ name: `Year ${data.years.length+1}`, modules: [] });
+  data.years.push({
+    name: `Year ${data.years.length+1}`,
+    collapsed: true,
+    modules: []
+  });
   render();
 }
 function addModule(y) {
@@ -131,9 +137,13 @@ function addAssessment(y,m) {
 }
 function updateField(evt, y, m, a, field) {
   const v = evt.target.value;
-  if (a!==null) data.years[y].modules[m].assessments[a][field] = parseFloat(v);
-  else if (field==="credits") data.years[y].modules[m][field] = parseFloat(v);
-  else data.years[y].modules[m][field] = v;
+  if (a !== null) {
+    data.years[y].modules[m].assessments[a][field] = parseFloat(v);
+  } else if (field === "credits") {
+    data.years[y].modules[m][field] = parseFloat(v);
+  } else {
+    data.years[y].modules[m][field] = v;
+  }
   render();
 }
 
@@ -145,47 +155,50 @@ function render() {
   data.years.forEach((yr, yi) => {
     const yDiv = document.createElement("div");
     yDiv.className = "year";
-    yDiv.innerHTML = `<h2>${yr.name}</h2>
-      <button onclick="addModule(${yi})">+ Add Module</button>`;
-    yearsEl.appendChild(yDiv);
 
-    yr.modules.forEach((m, mi) => {
-      const modDiv = document.createElement("div");
-      modDiv.className = "module";
+    if (yr.collapsed) {
+      // Year collapsed: show name, average, and Edit button
+      const ya = calculateYearAvg(yr);
+      yDiv.innerHTML = `
+        <strong>${yr.name}</strong> — <em>Avg: ${ya}</em>
+        <button onclick="toggleYear(${yi})">✏️ Edit</button>
+      `;
+    } else {
+      // Year expanded: show full UI + Collapse button
+      let html = `<button onclick="toggleYear(${yi})">⬆️ Collapse Year</button><br/>
+        <h2>${yr.name}</h2>
+        <button onclick="addModule(${yi})">+ Add Module</button><br/>`;
 
-      if (m.collapsed) {
-        // Collapsed view
-        const grade = calculateModuleGrade(m.assessments);
-        modDiv.innerHTML = `
-          <strong>${m.name}</strong> — <em>${grade}</em>
-          <button onclick="toggleModule(${yi},${mi})">✏️ Edit</button>
-        `;
-      } else {
-        // Expanded view
-        let html = `
-          <button onclick="toggleModule(${yi},${mi})">⬆️ Collapse</button><br/>
-          <input value="${m.name}" onchange="updateField(event,${yi},${mi},null,'name')" />
-          <input type="number" value="${m.credits}" onchange="updateField(event,${yi},${mi},null,'credits')" /> credits
-          <button onclick="addAssessment(${yi},${mi})">+ Add Assessment</button><br/>
-        `;
-        m.assessments.forEach((a, ai) => {
+      yr.modules.forEach((m, mi) => {
+        if (m.collapsed) {
+          // Module collapsed inside expanded year
+          const grade = calculateModuleGrade(m.assessments);
           html += `
-            Mark:<input type="number" value="${a.mark}" onchange="updateField(event,${yi},${mi},${ai},'mark')" />
-            Wt:<input type="number" value="${a.weight}" onchange="updateField(event,${yi},${mi},${ai},'weight')" /><br/>
-          `;
-        });
-        const grade = calculateModuleGrade(m.assessments);
-        html += `<div><strong>Grade:</strong> ${grade}</div>`;
-        modDiv.innerHTML = html;
-      }
+            <div class="module-collapsed">
+              <strong>${m.name}</strong> — <em>${grade}</em>
+              <button onclick="toggleModule(${yi},${mi})">✏️ Edit</button>
+            </div>`;
+        } else {
+          // Module expanded inside expanded year
+          html += `<div class="module">
+            <button onclick="toggleModule(${yi},${mi})">⬆️ Collapse Module</button><br/>
+            <input value="${m.name}" onchange="updateField(event,${yi},${mi},null,'name')" />
+            <input type="number" value="${m.credits}" onchange="updateField(event,${yi},${mi},null,'credits')" /> credits
+            <button onclick="addAssessment(${yi},${mi})">+ Add Assessment</button><br/>`;
+          m.assessments.forEach((a, ai) => {
+            html += `
+              Mark:<input type="number" value="${a.mark}" onchange="updateField(event,${yi},${mi},${ai},'mark')" />
+              Wt:<input type="number" value="${a.weight}" onchange="updateField(event,${yi},${mi},${ai},'weight')" /><br/>`;
+          });
+          const grade = calculateModuleGrade(m.assessments);
+          html += `<div><strong>Grade:</strong> ${grade}</div></div>`;
+        }
+      });
 
-      yDiv.appendChild(modDiv);
-    });
+      yDiv.innerHTML = html;
+    }
 
-    const ya = calculateYearAvg(yr);
-    const avgDiv = document.createElement("div");
-    avgDiv.innerHTML = `<strong>Year Average:</strong> ${ya}`;
-    yDiv.appendChild(avgDiv);
+    yearsEl.appendChild(yDiv);
   });
 
   document.getElementById("classification").innerText = calculateOverall();
@@ -233,8 +246,9 @@ checkLogin();
 window.signIn        = signIn;
 window.signUp        = signUp;
 window.signOut       = signOut;
-window.addYear       = addYear;
+window.toggleYear    = toggleYear;
 window.toggleModule  = toggleModule;
+window.addYear       = addYear;
 window.addModule     = addModule;
 window.addAssessment = addAssessment;
 window.updateField   = updateField;
