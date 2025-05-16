@@ -1,16 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Grade Tracker</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
+  <div id="auth-container">
+    <h2>Login / Signup</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Log In</button>
+    <button onclick="signup()">Sign Up</button>
+  </div>
+  <button id="logoutBtn" style="display:none;" onclick="logout()">Logout</button>
+
   <h1>Grade Tracker</h1>
-  <div id="app"></div>
-  <button id="addYearBtn">+ Add Year</button>
-  <p id="classification"></p>
+  <button id="addYearBtn">Add Year</button>
+  <div id="yearContainer"></div>
+
   <script src="app.js"></script>
 </body>
 </html>
