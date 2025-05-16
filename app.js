@@ -42,6 +42,7 @@ async function getToken() {
 
 // ─── DATA OPERATIONS ──────────────────────────────────────────────────────────
 async function loadGrades() {
+  // Fetch saved data
   const token = await getToken();
   const res   = await fetch("/.netlify/functions/getGrades", {
     headers: { Authorization: `Bearer ${token}` }
@@ -49,12 +50,13 @@ async function loadGrades() {
   const json = await res.json();
   data = json || { years: [] };
 
-  // default any module to collapsed = true
+  // ─── FORCE COLLAPSED ON EVERY LOAD ─────────────────────────────────────────
   data.years.forEach(y => {
     y.modules.forEach(m => {
-      if (m.collapsed === undefined) m.collapsed = true;
+      m.collapsed = true;
     });
   });
+  // ────────────────────────────────────────────────────────────────────────────
 
   render();
 }
@@ -119,7 +121,7 @@ function addModule(y) {
     name: "Module",
     credits: 20,
     assessments: [],
-    collapsed: true    // default collapsed
+    collapsed: false    // new modules start open
   });
   render();
 }
