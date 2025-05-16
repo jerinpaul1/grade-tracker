@@ -112,7 +112,7 @@ async function loadGrades() {
     return;
   }
 
-  if (data) renderGrades(data.data);
+  if (data?.data?.years) renderGrades(data.data.years);
 }
 
 async function saveGrades() {
