@@ -8,10 +8,16 @@ const supabase = createClient(
 exports.handler = async function (event) {
   const body = JSON.parse(event.body);
 
-  await supabase.from('grades').upsert({
-    id: 1,
-    data: body
-  });
+  const { error } = await supabase
+    .from('grades')
+    .upsert({ id: 1, data: body });
+
+  if (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+  }
 
   return {
     statusCode: 200,
