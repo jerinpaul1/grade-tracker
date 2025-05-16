@@ -26,25 +26,17 @@ exports.handler = async (event) => {
     };
   }
 
-  const { data: existing, error: selectError } = await supabase
+  const body = JSON.parse(event.body);
+
+  const { data: existing } = await supabase
     .from('grades')
     .select('id')
     .eq('user_id', user.id)
     .single();
 
-  const body = JSON.parse(event.body);
-
-  let result;
-  if (existing) {
-    result = await supabase
-      .from('grades')
-      .update({ data: body })
-      .eq('user_id', user.id);
-  } else {
-    result = await supabase
-      .from('grades')
-      .insert({ user_id: user.id, data: body });
-  }
+  const result = existing
+    ? await supabase.from('grades').update({ data: body }).eq('user_id', user.id)
+    : await supabase.from('grades').insert({ user_id: user.id, data: body });
 
   if (result.error) {
     return {
