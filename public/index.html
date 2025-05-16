@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grade Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grade-tracker">
+    <header>
+      <h1>Grade Tracker</h1>
+    </header>
+    <main>
+      <form id="grade-form">
+        <label for="subject">Subject:</label>
+        <input type="text" id="subject" name="subject" required>
+
+        <label for="grade">Grade (0–100):</label>
+        <input type="number" id="grade" name="grade" min="0" max="100" required>
+
+        <button type="submit">Save Grade</button>
+      </form>
+
+      <div id="message" role="alert" aria-live="polite"></div>
+
+      <section>
+        <h2>Your Grades</h2>
+        <ul id="grades-list"></ul>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="../src/app.js"></script>
+</body>
+</html>
